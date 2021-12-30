@@ -1,18 +1,18 @@
 import numpy as np
 import pandas as pd
+import re
 from re import search
+from scipy import stats
 
 
 def clean(data):
-	import numpy as np
-	import pandas as pd
 	# Dropping rows with 'None' (there aren't many)
-	indexes = data[ data['Listing_title'] == 'None'].index
+	indexes = data[ data['listing_title'] == 'None'].index
 	data.drop(indexes , inplace=True)
 
 	# Getting floats from the price strings
-	data['original_price'] = data.Original_price.map(lambda x: float(x.replace('£', '').replace('GBP', '').replace(',', '')))
-	data['current_price'] = data.Current_price.map(lambda x: float(x.replace('£', '').replace('GBP', '').replace(',', '')))
+	data['original_price'] = data.original_price.map(lambda x: float(x.replace('£', '').replace('GBP', '').replace(',', '')))
+	data['current_price'] = data.current_price.map(lambda x: float(x.replace('£', '').replace('GBP', '').replace(',', '')))
 
 	return data
 
@@ -26,12 +26,12 @@ brands = ['squier', 'fender', 'epiphone', 'gibson', 'ibanez', 'danelectro', 'sch
 # Getting the brand of guitar (improve on this)
 def get_brand(data):
 
-	brand_name = []
-	brand_num = []
-	titles = data.Listing_title.values
+    brand_name = []
+    brand_num = []
+    titles = data.listing_title.values
 
-	for i in np.arange(len(data.Listing_title)):
-		x = titles[i]
+    for i in np.arange(len(data.listing_title)):
+        x = titles[i]
 
         match = False
         for j, brand in enumerate(brands):
@@ -39,15 +39,16 @@ def get_brand(data):
                 match = True
                 brand_name.append(brand)
                 brand_num.append(j+1)
+                break
 
         if not match:
             brand_name.append('other')
             brand_num.append(0)
 
-	data['brand_name'] = brand_name
+    data['brand_name'] = brand_name
     data['brand_num'] = brand_num
 
-	return data
+    return data
 
 
 
@@ -63,10 +64,10 @@ def getModel(data):
 
     model_name = []
     model_num = []
-	titles = data.Listing_title.values
+    titles = data.listing_title.values
 
-	for i in np.arange(len(data.Listing_title)):
-		x = titles[i]
+    for i in np.arange(len(data.listing_title)):
+        x = titles[i]
 
         match = False
         for j, model in enumerate(models):
@@ -74,15 +75,16 @@ def getModel(data):
                 match = True
                 model_name.append(model)
                 model_num.append(j+1)
+                break
 
         if not match:
             model_name.append('other')
             model_num.append(0)
 
-	data['model_name'] = model_name
+    data['model_name'] = model_name
     data['model_num'] = model_num
 
-	return data
+    return data
 
 
 
@@ -95,23 +97,24 @@ condition_labels = ['Mint', 'Excellent', 'Very Good', 'Good', 'Fair']
 def conv_conditions(data):
 
     condition_num = []
-	conditions = data.Condition.values
+    conditions = data.condition.values
 
-	for i in np.arange(len(data.Listing_title)):
-		x = conditions[i]
+    for i in np.arange(len(data.listing_title)):
+        x = conditions[i]
 
         match = False
         for j, label in enumerate(condition_labels):
             if search(label, x, flags=re.IGNORECASE):
                 match = True
                 condition_num.append(j+1)
+                break
 
         if not match:
             condition_num.append(0)
 
     data['condition_num'] = condition_num
 
-	return data
+    return data
 
 
 
@@ -125,14 +128,14 @@ def getDiscount(data):
 	import numpy as np
 	import pandas as pd
 
-	discount = data.original_price.values - _data.current_price.values
+	discount = data.original_price.values - data.current_price.values
 	data['discount'] = discount
 
 	# was there a discount?
 	cur_p = data.current_price.values
 	ori_p = data.original_price.values
 	is_discounted = np.empty(len(ori_p))
-	for i in np.arange(len(_data.current_price.values)):
+	for i in np.arange(len(data.current_price.values)):
 		if cur_p[i] < ori_p[i]:
 			is_discounted[i] = 1
 		else:
@@ -148,14 +151,10 @@ def getDiscount(data):
 # Get the country it was made in
 def getCountry(data):
 
-	import numpy as np
-	import pandas as pd
-	from re import search
-
 	country = []
 	country_num = np.empty(len(data.current_price.values))
 	for i in np.arange(len(data.current_price.values)):
-		title = data.Listing_title.values[i]
+		title = data.listing_title.values[i]
 		if search('mim', title, flags=re.IGNORECASE):
 			country.append('mexico')
 			country_num[i] = 1
@@ -244,25 +243,31 @@ def binPrices(_data, _bins):
 
 if __name__=='__main__':
     # Get the data
-    data = pd.read_csv('big_dataset.csv')
+    data = pd.read_csv('raw_data.csv')
+    print('\n\nRaw data:')
     print(data.info())
+    print('\n\n')
 
     # clean the data
-    data = cleaning.clean(data)
+    data = clean(data)
 
     # feature engineering
     data = get_brand(data)
-    data = get_brand_num(data)
+    #data = get_brand_num(data)
     data = getModel(data)
-    data = get_model_num(data)
-    data = getSpecialScore(data)
+    #data = get_model_num(data)
+    #data = getSpecialScore(data)
     data = conv_conditions(data)
     data = getDiscount(data)
     data = getCountry(data)
-    data['length'] = data.Listing_title.map(lambda x: len(x))#
+    data['length'] = data.listing_title.map(lambda x: len(x))
     data['log_current_price'] = data.current_price.map(lambda x: np.log(x))
     data['log_original_price'] = data.original_price.map(lambda x: np.log(x))
     #data = binPrices(data, 30) # 30 bins
 
-    data.to_csv('cleanedEngineeredData.csv', index=False)
+    print('Processed data:')
+    print(data.info())
+    print('\n\n')
+
+    data.to_csv('processed_data.csv', index=False)
 
