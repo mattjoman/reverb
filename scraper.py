@@ -59,10 +59,10 @@ for page in np.arange(1, 501):
 
 # SAVE DATA AS A .csv FILE
 data = {
-	'Current price': current_price_list,
-	'Origninal price': original_price_list,
-	'Listing title': listing_title_list,
-	'Condition': condition_list,
+	'current_price': current_price_list,
+	'origninal_price': original_price_list,
+	'listing_title': listing_title_list,
+	'condition': condition_list,
 }
 data = pd.DataFrame(data)
-data.to_csv('big_dataset.csv', index=False)
+data.to_csv('raw_data.csv', index=False)
