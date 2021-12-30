@@ -3,16 +3,24 @@ import pandas as pd
 from re import search
 
 
+def clean(data):
+	import numpy as np
+	import pandas as pd
+	# Dropping rows with 'None' (there aren't many)
+	indexes = data[ data['Listing_title'] == 'None'].index
+	data.drop(indexes , inplace=True)
+
+	# Getting floats from the price strings
+	data['original_price'] = data.Original_price.map(lambda x: float(x.replace('£', '').replace('GBP', '').replace(',', '')))
+	data['current_price'] = data.Current_price.map(lambda x: float(x.replace('£', '').replace('GBP', '').replace(',', '')))
+
+	return data
+
+
+
+
+
 brands = ['squier', 'fender', 'epiphone', 'gibson', 'ibanez', 'danelectro', 'schecter', 'jackson', 'esp', 'sterling', 'ernie ball', 'music man', 'yamaha', 'paul reed smith', 'prs', 'charvel', 'suhr', 'g&l', 'peavey', 'gretsch', 'washburn', 'godin', 'carvin', 'tokai', 'kramer', 'tiesco', 'warmoth', 'line 6', 'mayones', 'fernandez', 'evh', 'hagstrom', 'dean', 'greco', 'tom anderson', 'chapman', 'knaggs', 'rickenbacker']
-
-
-
-def get_listing_length(data):
-    """
-    Ualculate the length of the description.
-    """
-    pass
-
 
 
 # Getting the brand of guitar (improve on this)
@@ -53,10 +61,6 @@ models = ['strat', 'tele', 'jaguar', 'jazzmaster', 'les paul', 'firebird', 'sg',
 # include more models and alternative spellings
 def getModel(data):
 
-	import numpy as np
-	import pandas as pd
-	from re import search
-
     model_name = []
     model_num = []
 	titles = data.Listing_title.values
@@ -90,9 +94,6 @@ condition_labels = ['Mint', 'Excellent', 'Very Good', 'Good', 'Fair']
 # convert the conditions to numerical values
 def conv_conditions(data):
 
-	import numpy as np
-	import pandas as pd
-
     condition_num = []
 	conditions = data.Condition.values
 
@@ -110,30 +111,6 @@ def conv_conditions(data):
 
     data['condition_num'] = condition_num
 
-
-
-
-
-	conditions = data.Condition.values
-	y = np.empty(len(conditions))
-
-	for i in np.arange(len(y)):
-		x = conditions[i]
-
-		if x == 'Mint':
-			y[i] = 1
-		elif x == 'Excellent':
-			y[i] = 2
-		elif x == 'Very Good':
-			y[i] = 3
-		elif x == 'Good':
-			y[i] = 4
-		elif x == 'Fair':
-			y[i] = 5
-		else:
-			y[i] = 0
-
-	data['condition_num'] = condition_num
 	return data
 
 
@@ -209,9 +186,6 @@ def getCountry(data):
 # Putting the prices into bins for classification models
 def binPrices(_data, _bins):
 
-	import numpy as np
-	import pandas as pd
-	from scipy import stats
 
 	# Get the log prices
 	prices = _data.log_current_price.values
@@ -265,3 +239,30 @@ def binPrices(_data, _bins):
 	return _data
 
 """
+
+
+
+if __name__=='__main__':
+    # Get the data
+    data = pd.read_csv('big_dataset.csv')
+    print(data.info())
+
+    # clean the data
+    data = cleaning.clean(data)
+
+    # feature engineering
+    data = get_brand(data)
+    data = get_brand_num(data)
+    data = getModel(data)
+    data = get_model_num(data)
+    data = getSpecialScore(data)
+    data = conv_conditions(data)
+    data = getDiscount(data)
+    data = getCountry(data)
+    data['length'] = data.Listing_title.map(lambda x: len(x))#
+    data['log_current_price'] = data.current_price.map(lambda x: np.log(x))
+    data['log_original_price'] = data.original_price.map(lambda x: np.log(x))
+    #data = binPrices(data, 30) # 30 bins
+
+    data.to_csv('cleanedEngineeredData.csv', index=False)
+
